@@ -71,6 +71,10 @@ class Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);self.stage(root);(root/'homebrew/PPSA99400/eboot.bin').write_bytes(b'changed')
             with self.assertRaises(ValueError):m.verify(root)
+    def test_complete_local_package_verifies(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);self.stage(root)
+            self.assertEqual(len(m.verify(root)['files']),3)
     def test_elf_normalization_never_omits_code(self):
         elf=bytearray(232);elf[:6]=b'\x7fELF\x02\x01';struct.pack_into('<Q',elf,32,64);struct.pack_into('<HH',elf,54,56,2)
         struct.pack_into('<IIQQQQQQ',elf,64,1,5,176,4096,4096,32,32,16)

@@ -106,7 +106,7 @@ def verify(directory):
         p=directory.joinpath(*PurePosixPath(name).parts)
         require(not p.is_symlink() and p.is_file() and digest(p)==row['sha256'],'local mismatch: '+name)
     for name in manifest['directories']:
-        relative(name);require(any((name+'/').startswith(r) for r in roots),'directory outside install scope')
+        relative(name);require(name in ['library/prefixes','library/profiles'] or any((name+'/').startswith(r) for r in roots),'directory outside install scope')
     actual={p.relative_to(directory).as_posix() for t in ['homebrew','library'] for p in (directory/t).rglob('*') if p.is_file()}
     require(actual==set(manifest['files']),'manifest does not exactly cover installation')
     return manifest
