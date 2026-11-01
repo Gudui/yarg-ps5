@@ -1,0 +1,337 @@
+# YARG v0.15.0 (official Windows x64 release, unmodified) for prospero-win,
+# in Lutris's installer format, run by prospero-win's tools/pw_install.py
+# with its host Wine. Stage W3 of docs/prospero-win-route-plan.md.
+#
+# There is no installer: the release zip is extracted into C:\Games\YARG of a
+# prefix of its own, with DXVK 2.6.2 for Direct3D 11.
+#
+#   python3 tools/pw_install.py <GuitarHeroPs5>/prospero-win/recipes/yarg.yml \
+#       --library ~/prospero-library --wine <host wine> \
+#       --file yarg=<path>/YARG_v0.15.0-Windows-x64.zip
+#
+# -force-d3d11: the release also carries Unity's D3D12 runtime, and the
+# console's Vulkan has DXVK (Direct3D 8-11) but no Direct3D 12 translation.
+# UnityCrashHandler64.exe is left in place: Unity starts it as a second
+# process, which Wine on the console refuses; that refusal is the first thing
+# to check if YARG closes before its first frame.
+name: "YARG"
+game_slug: yarg
+version: v0.15.0 Windows x64 (Prospero Win)
+slug: yarg
+runner: wine
+prospero:
+  name: YARG
+  graphics: dxvk
+  display: {desktop: 1920x1080}
+  input: {mode: xinput}
+script:
+  game:
+    exe: drive_c/Games/YARG/YARG.exe
+    prefix: $GAMEDIR
+    args: -force-d3d11 -screen-fullscreen 1 -screen-width 1920 -screen-height 1080
+  files:
+  - yarg: "N/A:Select YARG_v0.15.0-Windows-x64.zip"
+  wine:
+    dxvk: true
+    dxvk_version: "2.6.2"
+    overrides:
+      # Disabled, so Unity reads gamepads through XInput, where prospero-win
+      # puts the DualSense. With it, Unity uses Windows.Gaming.Input, which
+      # has no controller on the console (W3 launch 1: no pad input).
+      windows.gaming.input: ""
+  installer:
+  - task: {name: create_prefix, prefix: $GAMEDIR}
+  - extract: {file: yarg, dst: $GAMEDIR/drive_c/Games/YARG}
+  # A YARG profile for the DualSense, so its menus answer the controller from
+  # the first launch: YARG drives menus only from a device bound to a profile,
+  # and creates profiles on its own only for instruments. This is the profile
+  # YARG v0.15.0 wrote on the console after "New Profile" + "Xbox Controller"
+  # (docs/evidence/w3-yarg-console-8/yarg-userdata), renamed, with a fixed id.
+  # YARG matches the device by a hash of its XInput description; prospero-win
+  # reports fixed capabilities (wine patch 0470), so the hash is the same on
+  # every console. AutoConnectOrder 0 connects it at start. On the first-run
+  # notice: d-pad down selects "I Understand", Cross confirms.
+  - write_file:
+      file: $GAMEDIR/drive_c/users/prospero/AppData/LocalLow/YARC/YARG/release/profiles/profiles.json
+      content: |
+        [
+          {
+            "Version": 0,
+            "Id": "79d5b883-314b-5b1e-9fb0-1b1d6c18af1b",
+            "Name": "DualSense",
+            "IsBot": false,
+            "GameMode": 0,
+            "NoteSpeed": 5.0,
+            "HighwayLength": 1.0,
+            "LeftyFlip": false,
+            "RangeEnabled": true,
+            "FourLaneDrumsHighwayOrderingLength": 4,
+            "FourLaneDrumsHighwayOrdering": [
+              4,
+              5,
+              6,
+              7
+            ],
+            "ProDrumsHighwayOrderingLength": 4,
+            "ProDrumsHighwayOrdering": [
+              4,
+              5,
+              6,
+              7
+            ],
+            "FiveLaneDrumsHighwayOrderingLength": 5,
+            "FiveLaneDrumsHighwayOrdering": [
+              4,
+              5,
+              6,
+              14,
+              7
+            ],
+            "UseCymbalModels": true,
+            "OpenLaneDisplayType": 0,
+            "StarPowerActivationType": 2,
+            "AutoConnectOrder": 0,
+            "InputCalibrationMilliseconds": 0,
+            "EnginePreset": "d620197a-5611-c0ab-5a60-135aefe8bc67",
+            "ThemePreset": "d3c54575-24ad-686a-3a19-7a2903a4d5e6",
+            "ColorProfile": "d620197a-5611-c0ab-5a60-135aefe8bc67",
+            "CameraPreset": "d620197a-5611-c0ab-5a60-135aefe8bc67",
+            "HighwayPreset": "d620197a-5611-c0ab-5a60-135aefe8bc67",
+            "RockMeterPreset": "c5440b96-bc79-682f-18d2-daaf9e4c16f0",
+            "CurrentInstrument": 0,
+            "PreferredInstrument": 0,
+            "CurrentDifficulty": 0,
+            "DifficultyFallback": 0,
+            "HarmonyIndex": 0,
+            "LastUsed": "2026-10-12T00:00:00+00:00",
+            "SplitProTomsAndCymbals": false,
+            "SwapSnareAndHiHat": false,
+            "SwapCrashAndRide": false,
+            "InputCalibrationSeconds": 0.0,
+            "HasValidInstrument": true,
+            "CurrentModifiers": 0
+          }
+        ]
+  - write_file:
+      file: $GAMEDIR/drive_c/users/prospero/AppData/LocalLow/YARC/YARG/release/profiles/bindings.json
+      content: |
+        {
+          "Version": 2,
+          "Profiles": {
+            "79d5b883-314b-5b1e-9fb0-1b1d6c18af1b": {
+              "Devices": [
+                {
+                  "Layout": "XInputControllerWindows",
+                  "Hash": "39C975574943DE16F7A961017ABC9BA2E6B9CAB9"
+                }
+              ],
+              "Microphone": null,
+              "ModeMappings": {
+                "FiveFretGuitar": {
+                  "Bindings": {
+                    "FiveFret.Green": {
+                      "Controls": [
+                        {
+                          "DeviceIndex": 0,
+                          "ControlPath": "/<XInputControllerWindows>/leftTrigger"
+                        }
+                      ]
+                    },
+                    "FiveFret.Red": {
+                      "Controls": [
+                        {
+                          "DeviceIndex": 0,
+                          "ControlPath": "/<XInputControllerWindows>/leftShoulder"
+                        }
+                      ]
+                    },
+                    "FiveFret.Yellow": {
+                      "Controls": [
+                        {
+                          "DeviceIndex": 0,
+                          "ControlPath": "/<XInputControllerWindows>/rightShoulder"
+                        }
+                      ]
+                    },
+                    "FiveFret.Blue": {
+                      "Controls": [
+                        {
+                          "DeviceIndex": 0,
+                          "ControlPath": "/<XInputControllerWindows>/rightTrigger"
+                        }
+                      ]
+                    },
+                    "FiveFret.Orange": {
+                      "Controls": [
+                        {
+                          "DeviceIndex": 0,
+                          "ControlPath": "/<XInputControllerWindows>/buttonSouth"
+                        }
+                      ]
+                    },
+                    "Guitar.StrumUp": {
+                      "Controls": [
+                        {
+                          "DeviceIndex": 0,
+                          "ControlPath": "/<XInputControllerWindows>/dpad/up"
+                        }
+                      ]
+                    },
+                    "Guitar.StrumDown": {
+                      "Controls": [
+                        {
+                          "DeviceIndex": 0,
+                          "ControlPath": "/<XInputControllerWindows>/dpad/down"
+                        }
+                      ]
+                    },
+                    "Guitar.StarPower": {
+                      "Controls": [
+                        {
+                          "DeviceIndex": 0,
+                          "ControlPath": "/<XInputControllerWindows>/select"
+                        }
+                      ]
+                    },
+                    "Guitar.Whammy": {
+                      "Controls": [
+                        {
+                          "DeviceIndex": 0,
+                          "ControlPath": "/<XInputControllerWindows>/leftStick/x"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "Vocals": {
+                  "Bindings": {
+                    "Vocals.Hit": {
+                      "Controls": [
+                        {
+                          "DeviceIndex": 0,
+                          "ControlPath": "/<XInputControllerWindows>/buttonSouth"
+                        }
+                      ]
+                    },
+                    "Vocals.StarPower": {
+                      "Controls": [
+                        {
+                          "DeviceIndex": 0,
+                          "ControlPath": "/<XInputControllerWindows>/select"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "MenuMappings": {
+                "Bindings": {
+                  "Menu.Start": {
+                    "Controls": [
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/start"
+                      }
+                    ]
+                  },
+                  "Menu.Select": {
+                    "Controls": [
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/select"
+                      }
+                    ]
+                  },
+                  "Menu.Green": {
+                    "Controls": [
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/buttonSouth"
+                      }
+                    ]
+                  },
+                  "Menu.Red": {
+                    "Controls": [
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/buttonEast"
+                      }
+                    ]
+                  },
+                  "Menu.Yellow": {
+                    "Controls": [
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/buttonNorth"
+                      }
+                    ]
+                  },
+                  "Menu.Blue": {
+                    "Controls": [
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/buttonWest"
+                      }
+                    ]
+                  },
+                  "Menu.Orange": {
+                    "Controls": [
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/leftShoulder"
+                      }
+                    ]
+                  },
+                  "Menu.Up": {
+                    "Controls": [
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/leftStick/up"
+                      },
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/dpad/up"
+                      }
+                    ]
+                  },
+                  "Menu.Down": {
+                    "Controls": [
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/leftStick/down"
+                      },
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/dpad/down"
+                      }
+                    ]
+                  },
+                  "Menu.Left": {
+                    "Controls": [
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/leftStick/left"
+                      },
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/dpad/left"
+                      }
+                    ]
+                  },
+                  "Menu.Right": {
+                    "Controls": [
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/leftStick/right"
+                      },
+                      {
+                        "DeviceIndex": 0,
+                        "ControlPath": "/<XInputControllerWindows>/dpad/right"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }

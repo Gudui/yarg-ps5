@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "title_id": "PPSA99400",
+  "qualified_source": "b76fe98a0635cea79064c7a2942f14452bcbb1c3",
+  "downloads": {
+    "runtime": {
+      "url": "https://github.com/mpereiraesaa/prospero-win/releases/download/v0.3.0/prospero-win-v0.3.0.zip",
+      "sha256": "b17c5daf19e5053edfbc1ce2588db403ae553592cced39ca92a337bfe1f8eb41"
+    },
+    "yarg": {
+      "url": "https://github.com/YARC-Official/YARG/releases/download/v0.15.0/YARG_v0.15.0-Windows-x64.zip",
+      "sha256": "a2eac765a190e34a8acbda5b1351844704b427349d6d36b8cf1096f575055e41"
+    }
+  }
+}
