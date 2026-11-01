@@ -69,10 +69,11 @@ def canonical_elf(data):
 def portable_prefix(source,destination,module):
     files,dirs,links=module.local_tree(source)
     for name in dirs:destination.joinpath(*PurePosixPath(name).parts).mkdir(parents=True,exist_ok=True)
-    for name,path in files.items():
+    for index,(name,path) in enumerate(files.items(),1):
         target=destination.joinpath(*relative(name).parts)
         if name in module.REGISTRY:target.write_bytes(module.to_console(name,path.read_bytes()))
         else:shutil.copyfile(path,target)
+        if index%250==0:print(f'Prepared prefix {index}/{len(files)} files',flush=True)
     for directory,table in links.items():
         text=''.join(f'{name}\t{value}\n' for name,value in sorted(table.items()))
         (destination/directory/module.LINK_TABLE).write_text(text,encoding='utf-8',newline='\n')
@@ -121,15 +122,18 @@ def prepare(args):
         tools=list((work/'source').rglob('tools/pw_install.py'));require(len(tools)==1,'unexpected source layout');upstream=tools[0].parent
         args.output.parent.mkdir(parents=True,exist_ok=True)
         stage=args.output.with_name(args.output.name+'.incoming-'+uuid.uuid4().hex[:8]);stage.mkdir()
+        print('Preparing YARG tile and runtime...',flush=True)
         title=stage/'homebrew'/TITLE;shutil.copytree(candidates[0].parent,title)
         shutil.copytree(work/'overlay'/'title',title,dirs_exist_ok=True)
         metadata=json.loads((title/'sce_sys/param.json').read_text());require(metadata['titleId']==TITLE,'wrong title identity')
         environment=os.environ.copy();environment['WINEDEBUG']='-all'
+        print('Creating fresh YARG prefix with host Wine...',flush=True)
         subprocess.run([sys.executable,str(upstream/'pw_install.py'),str(ROOT/'recipes/yarg.yml'),'--library',str(work/'library'),'--wine',str(args.wine),'--file','yarg='+str(downloads['yarg'])],check=True,env=environment)
         portable_prefix(work/'library/prefixes/yarg',stage/'library/prefixes/yarg',load_module(upstream/'pw_prefix.py'))
         for name,expected in lock['application_files'].items():
             require(digest(stage/'library/prefixes/yarg'/name)==expected,'official YARG identity mismatch: '+name)
         (stage/'library/profiles').mkdir(parents=True);shutil.copyfile(work/'library/profiles/yarg.profile',stage/'library/profiles/yarg.profile')
+        print('Verifying prepared files...',flush=True)
         integrity=json.loads((work/'overlay/integrity.json').read_text())
         manifest=make_manifest(stage,integrity);manifest['components']=lock
         (stage/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
