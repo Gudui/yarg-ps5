@@ -127,6 +127,8 @@ def prepare(args):
         environment=os.environ.copy();environment['WINEDEBUG']='-all'
         subprocess.run([sys.executable,str(upstream/'pw_install.py'),str(ROOT/'recipes/yarg.yml'),'--library',str(work/'library'),'--wine',str(args.wine),'--file','yarg='+str(downloads['yarg'])],check=True,env=environment)
         portable_prefix(work/'library/prefixes/yarg',stage/'library/prefixes/yarg',load_module(upstream/'pw_prefix.py'))
+        for name,expected in lock['application_files'].items():
+            require(digest(stage/'library/prefixes/yarg'/name)==expected,'official YARG identity mismatch: '+name)
         (stage/'library/profiles').mkdir(parents=True);shutil.copyfile(work/'library/profiles/yarg.profile',stage/'library/profiles/yarg.profile')
         integrity=json.loads((work/'overlay/integrity.json').read_text())
         manifest=make_manifest(stage,integrity);manifest['components']=lock

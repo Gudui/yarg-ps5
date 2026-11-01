@@ -10,6 +10,19 @@
     "yarg": {
       "url": "https://github.com/YARC-Official/YARG/releases/download/v0.15.0/YARG_v0.15.0-Windows-x64.zip",
       "sha256": "a2eac765a190e34a8acbda5b1351844704b427349d6d36b8cf1096f575055e41"
+    },
+    "source": {
+      "url": "https://codeload.github.com/Gudui/prospero-win/zip/b76fe98a0635cea79064c7a2942f14452bcbb1c3",
+      "sha256": "59d6303fe2b600dc353b5268ccbdca28d0e4b994a1a651874f9c484d67be696f"
+    },
+    "overlay": {
+      "url": "https://github.com/Gudui/yarg-ps5/releases/download/v0.1.0/yarg-ps5-overlay-v0.1.0.zip",
+      "sha256": "c06bae267257d5be1e66539f3f03b27378d9abc138e07f183a0fced5c9ca2d36"
     }
+  },
+  "application_files": {
+    "drive_c/Games/YARG/YARG.exe": "d6a4aae04b3efe2f037c8b349849fb9b280b429867363fd5602f6995d3b41323",
+    "drive_c/Games/YARG/YARG_Data/Managed/Assembly-CSharp.dll": "0b427e66cfbfbf5ab22b3334b07568e8abf1025a62e332aad56335e5994a6ae1",
+    "drive_c/Games/YARG/YARG_Data/Managed/Assembly-CSharp-firstpass.dll": "c29890f1ccb0df98f1608f5ba912e7592ef88489b21c92412218d7a3ffb4a850"
   }
 }
