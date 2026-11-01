@@ -44,10 +44,15 @@ ORIGINAL BASE RUNTIME PROVENANCE AND LICENSES FOLLOW
         for path in assembled.rglob('*'):
             if not path.is_file():continue
             with path.open('rb') as stream:magic=stream.read(4)
-            if magic!=bytes.fromhex('4f153d1d'):continue
-            elf=tmp/'extract.elf'
-            subprocess.run([str(a.self_tool),'self','--extract','--file',str(path),'--out',str(elf)],check=True,stdout=subprocess.DEVNULL)
-            integrity['homebrew/PPSA99400/'+path.relative_to(assembled).as_posix()]={'sha256':digest(path),'elf_sha256':canonical_elf(elf.read_bytes())}
+            if magic not in [bytes.fromhex('4f153d1d'),bytes.fromhex('5414f5ee'),b'\x7fELF']:continue
+            if magic==b'\x7fELF':data=path.read_bytes()
+            else:
+                elf=tmp/'extract.elf'
+                subprocess.run([str(a.self_tool),'self','--extract','--file',str(path),'--out',str(elf)],check=True,stdout=subprocess.DEVNULL)
+                data=elf.read_bytes()
+            integrity['homebrew/PPSA99400/'+path.relative_to(assembled).as_posix()]={'sha256':digest(path),'elf_sha256':canonical_elf(data)}
+        for required in ['eboot.bin','sce_module/libc.prx','win/wine/lib/wine/x86_64-unix/ntdll.prx','win/wine/lib/wine/x86_64-unix/xinput1_3.prx']:
+            require('homebrew/PPSA99400/'+required in integrity,'missing executable integrity: '+required)
         (overlay/'integrity.json').write_text(json.dumps(integrity,indent=2)+'\n')
         a.output.parent.mkdir(parents=True,exist_ok=True)
         with zipfile.ZipFile(a.output,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:
