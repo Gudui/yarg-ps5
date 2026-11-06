@@ -1,22 +1,22 @@
-# YARG v0.15.0 (official Windows x64 release, unmodified) for prospero-win,
+# YARG nightly b4161 (official Windows x64 nightly build, unmodified) for prospero-win,
 # in Lutris's installer format, run by prospero-win's tools/pw_install.py
 # with its host Wine. Stage W3 of docs/prospero-win-route-plan.md.
 #
-# There is no installer: the release zip is extracted into C:\Games\YARG of a
+# There is no installer: the build's zip is extracted into C:\Games\YARG of a
 # prefix of its own, with DXVK 2.6.2 for Direct3D 11.
 #
 #   python3 tools/pw_install.py <GuitarHeroPs5>/prospero-win/recipes/yarg.yml \
 #       --library ~/prospero-library --wine <host wine> \
-#       --file yarg=<path>/YARG_v0.15.0-Windows-x64.zip
+#       --file yarg=<path>/YARG_b4161-Windows-x64.zip
 #
-# -force-d3d11: the release also carries Unity's D3D12 runtime, and the
+# -force-d3d11: the build also carries Unity's D3D12 runtime, and the
 # console's Vulkan has DXVK (Direct3D 8-11) but no Direct3D 12 translation.
 # UnityCrashHandler64.exe is left in place: Unity starts it as a second
 # process, which Wine on the console refuses; that refusal is the first thing
 # to check if YARG closes before its first frame.
 name: "YARG"
 game_slug: yarg
-version: v0.15.0 Windows x64 (Prospero Win)
+version: nightly b4161 Windows x64 (Prospero Win)
 slug: yarg
 runner: wine
 prospero:
@@ -30,7 +30,7 @@ script:
     prefix: $GAMEDIR
     args: -force-d3d11 -screen-fullscreen 1 -screen-width 1920 -screen-height 1080
   files:
-  - yarg: "N/A:Select YARG_v0.15.0-Windows-x64.zip"
+  - yarg: "N/A:Select YARG_b4161-Windows-x64.zip"
   wine:
     dxvk: true
     dxvk_version: "2.6.2"
@@ -50,9 +50,11 @@ script:
   # YARG matches the device by a hash of its XInput description; prospero-win
   # reports fixed capabilities (wine patch 0470), so the hash is the same on
   # every console. AutoConnectOrder 0 connects it at start. On the first-run
-  # notice: d-pad down selects "I Understand", Cross confirms.
+  # notice: d-pad down selects "I Understand", Cross confirms. A nightly build
+  # keeps its user data in YARC/YARG/nightly/, not release/ (PathHelper,
+  # YARG_NIGHTLY_BUILD); it still reads this version-2 bindings file.
   - write_file:
-      file: $GAMEDIR/drive_c/users/prospero/AppData/LocalLow/YARC/YARG/release/profiles/profiles.json
+      file: $GAMEDIR/drive_c/users/prospero/AppData/LocalLow/YARC/YARG/nightly/profiles/profiles.json
       content: |
         [
           {
@@ -113,7 +115,7 @@ script:
           }
         ]
   - write_file:
-      file: $GAMEDIR/drive_c/users/prospero/AppData/LocalLow/YARC/YARG/release/profiles/bindings.json
+      file: $GAMEDIR/drive_c/users/prospero/AppData/LocalLow/YARC/YARG/nightly/profiles/bindings.json
       content: |
         {
           "Version": 2,

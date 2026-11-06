@@ -26,3 +26,23 @@ the earlier qualified binary overlay.
 This is an experimental first-install release, not an in-place updater. No
 gameplay scoring, timing calibration, other firmware/controller models or three
 simultaneous USB controllers are claimed by the installer checks.
+
+# Nightly b4161 validation
+
+Host validation on 2026-11-06, for the release that installs YARG nightly **b4161**
+(`YARG_b4161-Windows-x64.zip`, SHA-256 `8511fe04…523a`, matching GitHub's published digest;
+YARG commit `3e22931`) instead of v0.15.0:
+
+- The nine installer tests pass.
+- `prepare` with the same host Wine created a fresh prefix and installed DXVK 2.6.2;
+  `verify` checks **4,069 files**.
+- All **463 YARG application files** match the nightly ZIP byte for byte, with none
+  missing or added.
+- The DualSense profile is written to `YARC/YARG/nightly/profiles/`, where a nightly
+  build keeps its user data. The nightly still reads its version-2 bindings file, and
+  its device hash and auto-connect code are unchanged from v0.15.0.
+- The launch profile is unchanged (`4a51544c…`). All 1,786 title/runtime files are
+  identical to the v0.1.0 package.
+
+**Not yet run on a PS5.** The nightly is a different YARG build (346 commits after
+v0.15.0, same Unity 6000.3.5f2), so its console startup, input and audio are unqualified.

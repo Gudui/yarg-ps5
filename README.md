@@ -10,10 +10,16 @@ stable YARG menu, DualSense and X-plorer input, USB hotplug and Home return.
 The installer itself has host tests; its fresh-install path still needs a PS5
 qualification. Other firmware and guitar models are not qualified.
 
+**This version installs the YARG nightly build b4161** (2026-11-04, YARG commit
+`3e22931`) from [YARG-BleedingEdge](https://github.com/YARC-Official/YARG-BleedingEdge/releases/tag/b4161)
+instead of stable v0.15.0. The runtime is unchanged from v0.1.0, but this nightly
+has not been run on a PS5 yet. Nightly YARG keeps its settings, profiles and scores
+in `YARC/YARG/nightly/`, separate from a stable install's `release/`.
+
 ## What gets installed
 
 - `PPSA99400`: YARG tile, title-specific helper and private prospero-win runtime.
-- `/data/prospero-win/prefixes/yarg`: fresh Wine prefix, official YARG v0.15.0,
+- `/data/prospero-win/prefixes/yarg`: fresh Wine prefix, official YARG nightly b4161,
   DXVK 2.6.2 and ordinary DualSense profile/bindings.
 - `/data/prospero-win/profiles/yarg.profile`: D3D11/XInput launch settings.
 
