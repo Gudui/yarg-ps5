@@ -29,8 +29,23 @@ You need an already prepared homebrew console, FTP and ShadowMountPlus.
 
 **This is a first-install tool.** It refuses an existing YARG title, prefix or
 profile. It never updates or overwrites your profiles, settings, scores or songs.
-Keep your current installation when testing an upgrade; there is no migration
-command yet.
+Keep your current installation when testing an upgrade.
+
+To switch an existing tile to another YARG build (for example stable to nightly), use
+`update` instead of `deploy`:
+
+```powershell
+python yarg_ps5.py update .\dist --host YOUR_PS5_IP --port 2121 --dry-run
+python yarg_ps5.py update .\dist --host YOUR_PS5_IP --port 2121
+```
+
+It replaces only `C:\Games\YARG`, the official program files. It first reads back
+the installed title, runtime and launch profile and refuses unless they are this
+package's own. The new files are uploaded and verified in a staging folder, then
+swapped in, and the previous program folder is kept there for restore. It refuses
+while YARG runs and never writes settings, profiles, scores or songs; a nightly
+build's missing `nightly/` data folder gets the DualSense profile. `--dry-run`
+only checks.
 
 ## Prepare on Linux or WSL
 

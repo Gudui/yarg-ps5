@@ -51,6 +51,13 @@ class Tests(unittest.TestCase):
                 root=Path(tmp);manifest=self.stage(root);ftp=FTP([remote]);before=set(ftp.dirs)
                 with self.assertRaises(ValueError):m.install(ftp,root,manifest,'test')
                 self.assertEqual(ftp.dirs,before);self.assertFalse(ftp.files)
+    def test_missing_profile_reported_as_max_size_is_absent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);manifest=self.stage(root);ftp=FTP()
+            ftp.size=lambda path:ftp.files[path].__len__() if path in ftp.files else 2**64-1
+            m.install(ftp,root,manifest,'test');self.assertEqual(ftp.files['/data/prospero-win/profiles/yarg.profile'],b'profile')
+            ftp=FTP();ftp.files['/data/prospero-win/profiles/yarg.profile']=b'mine';ftp.size=lambda path:len(ftp.files[path]) if path in ftp.files else 2**64-1
+            with self.assertRaises(ValueError):m.install(ftp,root,manifest,'test2')
     def test_title_is_published_last_with_eboot_inside(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);manifest=self.stage(root);ftp=FTP();m.install(ftp,root,manifest,'test')
@@ -84,5 +91,61 @@ class Tests(unittest.TestCase):
         elf[208:]=bytes(24);m.remote_matches(bytes(elf),row)
         elf[180]^=1
         with self.assertRaises(ValueError):m.remote_matches(bytes(elf),row)
+
+class UpdateTests(unittest.TestCase):
+    APP='/data/prospero-win/prefixes/yarg/drive_c/Games/YARG'
+    NIGHTLY='/data/prospero-win/prefixes/yarg/drive_c/users/prospero/AppData/LocalLow/YARC/YARG/nightly'
+    def package(self,root):
+        for name,b in [('homebrew/PPSA99400/eboot.bin',b'eboot'),('library/profiles/yarg.profile',b'profile'),
+                       (m.APP+'/YARG.exe',b'nightly exe'),(m.APP+'/YARG_Data/a.dll',b'nightly dll'),
+                       (m.NIGHTLY+'/profiles/profiles.json',b'dualsense')]:
+            p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(b)
+        manifest=m.make_manifest(root,{});(root/'manifest.json').write_text(json.dumps(manifest));return manifest
+    def console(self,**changes):
+        ftp=FTP(['/data/homebrew/PPSA99400','/data/prospero-win/prefixes','/data/prospero-win/prefixes/yarg',self.APP,self.APP+'/YARG_Data'])
+        ftp.files={'/data/homebrew/PPSA99400/eboot.bin':b'eboot','/data/prospero-win/profiles/yarg.profile':b'profile',
+                   self.APP+'/YARG.exe':b'stable exe',self.APP+'/YARG_Data/a.dll':b'stable dll',
+                   '/data/prospero-win/prefixes/yarg/drive_c/Songs/s/notes.mid':b'song',
+                   '/data/prospero-win/prefixes/yarg/drive_c/users/prospero/AppData/LocalLow/YARC/YARG/release/settings.json':b'settings'}
+        ftp.files.update(changes);return ftp
+    def test_update_replaces_only_program_files_and_keeps_previous(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);manifest=self.package(root);ftp=self.console();user={k:v for k,v in ftp.files.items() if '/Songs/' in k or '/release/' in k}
+            report=m.update(ftp,root,manifest,'t')
+            self.assertTrue(report['updated']);self.assertEqual(ftp.files[self.APP+'/YARG.exe'],b'nightly exe')
+            self.assertEqual(ftp.files[report['previous']+'/YARG.exe'],b'stable exe')
+            for k,v in user.items():self.assertEqual(ftp.files[k],v)
+            self.assertEqual(ftp.files[self.NIGHTLY+'/profiles/profiles.json'],b'dualsense')
+    def test_update_refuses_a_different_runtime(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);manifest=self.package(root);ftp=self.console(**{'/data/homebrew/PPSA99400/eboot.bin':b'other'});before=dict(ftp.files)
+            with self.assertRaises(ValueError):m.update(ftp,root,manifest,'t')
+            self.assertEqual(ftp.files,before);self.assertFalse(ftp.renames)
+    def test_update_refuses_while_running_and_without_installation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);manifest=self.package(root)
+            ftp=self.console();ftp.dirs.add('/mnt/sandbox/PPSA99400_000')
+            with self.assertRaises(ValueError):m.update(ftp,root,manifest,'t')
+            ftp=self.console();ftp.dirs.discard(self.APP)
+            with self.assertRaises(ValueError):m.update(ftp,root,manifest,'t')
+    def test_update_keeps_existing_nightly_data(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);manifest=self.package(root);ftp=self.console(**{self.NIGHTLY+'/profiles/profiles.json':b'mine'});ftp.dirs.add(self.NIGHTLY)
+            m.update(ftp,root,manifest,'t');self.assertEqual(ftp.files[self.NIGHTLY+'/profiles/profiles.json'],b'mine')
+    def test_failed_swap_restores_previous_program_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);manifest=self.package(root);ftp=self.console();real=ftp.rename
+            def rename(source,target):
+                if source.endswith('/'+m.APP):raise OSError('refused')
+                real(source,target)
+            ftp.rename=rename
+            with self.assertRaises(OSError):m.update(ftp,root,manifest,'t')
+            self.assertEqual(ftp.files[self.APP+'/YARG.exe'],b'stable exe')
+    def test_dry_run_and_current_version_write_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);manifest=self.package(root)
+            for ftp,kwargs in [(self.console(),{'dry_run':True}),(self.console(**{self.APP+'/YARG.exe':b'nightly exe'}),{})]:
+                before=(set(ftp.dirs),dict(ftp.files));self.assertFalse(m.update(ftp,root,manifest,'t',**kwargs)['updated'])
+                self.assertEqual((ftp.dirs,ftp.files),before)
 
 if __name__=='__main__':unittest.main()

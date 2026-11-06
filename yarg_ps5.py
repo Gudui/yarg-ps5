@@ -146,6 +146,14 @@ def exists(ftp,path):
         if str(error).startswith('550'):return False
         raise
 
+def file_exists(ftp,path):
+    # The console's ftpsrv answers SIZE for a missing file with 2**64-1 instead of 550.
+    try:size=ftp.size(path)
+    except ftplib.error_perm as error:
+        if str(error).startswith('550'):return False
+        raise
+    return size is not None and 0<=size<2**64-1
+
 def mkdir(ftp,path):
     current=''
     for part in PurePosixPath(path).parts[1:]:
@@ -164,11 +172,7 @@ def install(ftp,directory,manifest,stamp):
     require(not exists(ftp,'/mnt/sandbox/'+TITLE+'_000'),'YARG is running/suspended')
     for remote,local in destinations:
         require(not exists(ftp,remote),'existing installation preserved: '+remote)
-        if local.endswith('.profile'):
-            try:ftp.size(remote)
-            except ftplib.error_perm as error:
-                if not str(error).startswith('550'):raise
-            else:raise ValueError('existing profile preserved: '+remote)
+        if local.endswith('.profile'):require(not file_exists(ftp,remote),'existing profile preserved: '+remote)
     work='/data/yarg-ps5-install-'+stamp
     ftp.mkd(work)
     for name in manifest['directories']:mkdir(ftp,work+'/'+name)
@@ -183,26 +187,75 @@ def install(ftp,directory,manifest,stamp):
         require(not exists(ftp,'/mnt/sandbox/'+TITLE+'_000'),'YARG started during staging')
         for remote,local in destinations:
             require(not exists(ftp,remote),'destination appeared during staging')
-            if local.endswith('.profile'):
-                try:ftp.size(remote)
-                except ftplib.error_perm as error:
-                    if not str(error).startswith('550'):raise
-                else:raise ValueError('profile appeared during staging')
+            if local.endswith('.profile'):require(not file_exists(ftp,remote),'profile appeared during staging')
             mkdir(ftp,str(PurePosixPath(remote).parent));ftp.rename(work+'/'+local,remote);committed.append((remote,local))
     except Exception:
         for remote,local in reversed(committed):ftp.rename(remote,work+'/'+local)
         raise
     return {'files':len(manifest['files']),'installed':[x[0] for x in destinations],'staging':work}
 
+APP='library/prefixes/yarg/drive_c/Games/YARG'
+NIGHTLY='library/prefixes/yarg/drive_c/users/prospero/AppData/LocalLow/YARC/YARG/nightly'
+def console(name):return '/data/prospero-win/'+name[len('library/'):] if name.startswith('library/') else '/data/'+name
+
+def update(ftp,directory,manifest,stamp,dry_run=False):
+    """Replace only the YARG program folder of an existing installation with the package's.
+
+    The title, runtime and launch profile on the console must be the package's own; the
+    previous program folder is kept in the staging directory, and user data (settings,
+    profiles, scores, songs) is never written. A missing nightly/ data folder gets the
+    package's DualSense profile."""
+    files=manifest['files'];running='/mnt/sandbox/'+TITLE+'_000'
+    require(not exists(ftp,running),'YARG is running/suspended')
+    app=console(APP)
+    for path in [console('homebrew/'+TITLE),console('library/prefixes/yarg'),app]:require(exists(ftp,path),'no existing installation: '+path)
+    shared=[n for n in files if n.startswith('homebrew/') or n=='library/profiles/yarg.profile']
+    for index,name in enumerate(shared,1):
+        try:data=read(ftp,console(name))
+        except ftplib.error_perm as error:raise ValueError('title/runtime differs from package (missing): '+name) from error
+        try:remote_matches(data,files[name])
+        except ValueError as error:raise ValueError('title/runtime differs from package: '+name) from error
+        if index%250==0:print(f'Checked installed runtime {index}/{len(shared)}',flush=True)
+    exe=APP+'/YARG.exe'
+    if hashlib.sha256(read(ftp,console(exe))).hexdigest()==files[exe]['sha256']:return {'updated':False,'reason':'YARG already matches the package'}
+    nightly=console(NIGHTLY);add_profile=not exists(ftp,nightly)
+    if dry_run:return {'updated':False,'reason':'dry run: title/runtime/profile match; YARG would be replaced','nightly_profile_added':add_profile}
+    work='/data/yarg-ps5-update-'+stamp;ftp.mkd(work)
+    staged=[n for n in files if n.startswith(APP+'/') or (add_profile and n.startswith(NIGHTLY+'/'))]
+    for name in manifest['directories']:
+        if name.startswith(APP+'/') or (add_profile and name.startswith(NIGHTLY+'/')):mkdir(ftp,work+'/'+name)
+    for index,name in enumerate(staged,1):
+        remote=work+'/'+name;mkdir(ftp,str(PurePosixPath(remote).parent))
+        with (directory/name).open('rb') as stream:ftp.storbinary('STOR '+remote,stream,blocksize=1024*1024)
+        remote_matches(read(ftp,remote),files[name])
+        if index%100==0:print(f'Uploaded and verified {index}/{len(staged)}',flush=True)
+    previous=work+'/previous-YARG'
+    require(not exists(ftp,running),'YARG started during staging')
+    ftp.rename(app,previous)
+    try:ftp.rename(work+'/'+APP,app)
+    except Exception:
+        ftp.rename(previous,app);raise
+    if add_profile and not exists(ftp,nightly):ftp.rename(work+'/'+NIGHTLY,nightly)
+    return {'updated':True,'files':len(staged),'previous':previous,'restore':f'rename {app} away, then rename {previous} to {app}','nightly_profile_added':add_profile}
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__);commands=parser.add_subparsers(dest='command',required=True)
     p=commands.add_parser('prepare');p.add_argument('--wine',type=Path,required=True);p.add_argument('--output',type=Path,default=ROOT/'dist');p.add_argument('--cache',type=Path,default=ROOT/'cache')
     p=commands.add_parser('verify');p.add_argument('directory',type=Path)
     p=commands.add_parser('deploy');p.add_argument('directory',type=Path);p.add_argument('--host',required=True);p.add_argument('--port',type=int,default=2121)
+    p=commands.add_parser('update',help='replace only the YARG program files of an existing installation');p.add_argument('directory',type=Path);p.add_argument('--host',required=True);p.add_argument('--port',type=int,default=2121);p.add_argument('--dry-run',action='store_true',help='check only; write nothing')
     args=parser.parse_args()
     try:
         if args.command=='prepare':prepare(args)
         elif args.command=='verify':print('Verified',len(verify(args.directory)['files']),'files')
+        elif args.command=='update':
+            manifest=verify(args.directory)
+            with ftplib.FTP() as ftp:
+                ftp.connect(args.host,args.port,timeout=30);ftp.login()
+                report=update(ftp,args.directory,manifest,uuid.uuid4().hex,args.dry_run)
+            (args.directory/'update-report.json').write_text(json.dumps(report,indent=2)+'\n')
+            if not report['updated']:print('Nothing to do: '+report['reason']+'.')
+            else:print('Updated YARG ('+str(report['files'])+' files). Previous program folder kept at '+report['previous']+'.')
         else:
             manifest=verify(args.directory)
             with ftplib.FTP() as ftp:
